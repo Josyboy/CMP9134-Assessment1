@@ -1,0 +1,36 @@
+services:
+  robot-api:
+    image: ghcr.io/francescodelduchetto/cmp9134_2526_robotsim:latest
+    container_name: gcs-robot-api
+    restart: unless-stopped
+    ports:
+      - "5001:5000"
+
+  backend:
+    build:
+      context: ./backend
+    container_name: josiah-gcs-backend
+    restart: unless-stopped
+    ports:
+      - "3500:3500"
+    environment:
+      PORT: "3500"
+      MONGO_URI: "mongodb+srv://nwarungwa21_db_user:A4SnJBjufRG6zUyW@cluster0.8xbjtgz.mongodb.net/"
+      JWT_SECRET: "josiah_secret_key"
+      ROBOT_API_BASE: "http://robot-api:5000"
+    depends_on:
+      - robot-api
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: josiah-gcs-frontend
+    restart: unless-stopped
+    ports:
+      - "2500:2500"
+    environment:
+      VITE_API_BASE_URL: "http://localhost:3500"
+      VITE_ROBOT_API_BASE_URL: "http://robot-api:5000"
+      VITE_TELEMETRY_WS_URL: "ws://localhost:5001"
+    depends_on:
+      - backend
