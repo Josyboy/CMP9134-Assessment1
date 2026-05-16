@@ -5,7 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js"
+  },
+  "jest": {
+    "transform": {},
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1",
+      "^node-fetch$": "<rootDir>/src/mocks/node-fetch.js"
+    }
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -15,5 +24,16 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.3.3",
     "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.5",
+    "@jest/core": "^29.7.0",
+    "@testing-library/jest-dom": "^6.4.2",
+    "babel-jest": "^30.4.1",
+    "cross-env": "^10.1.0",
+    "jest": "^29.7.0",
+    "jest-circus": "^29.7.0",
+    "supertest": "^7.2.2"
   }
 }

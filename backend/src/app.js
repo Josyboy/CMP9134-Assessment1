@@ -11,6 +11,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get("/", async (req, res) => {
+  return res.json({
+    success: true,
+    message: "Hello world",
+  });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/robot", robotRoutes);
 app.use("/api/audit", auditRoutes);
