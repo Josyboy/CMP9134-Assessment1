@@ -82,3 +82,10 @@ the simulator → move / reset the robot → audit log records the action.
   registered, rather than polling `/api/status`, so intentional robot outages do
   not generate healthcheck errors or mark the server unavailable. Real robot
   requests may still hit this upstream bug; outage simulation remains unchanged.
+- The same compiled simulator has a WebSocket cleanup bug: after a browser reload
+  (normal disconnect code 1001), `websocket_telemetry` can remove a client that
+  was already removed, logging `ValueError: list.remove(x): x not in list`.
+  This does not stop the server; the dashboard reconnects and Refresh still
+  succeeds. Fixing cleanup requires a corrected upstream simulator image/source,
+  not changes to this app or suppressed error logs. Avoid unnecessary preview
+  reloads during checks; this error can recur on normal browser disconnects.
