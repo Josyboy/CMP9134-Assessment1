@@ -102,7 +102,9 @@ services:
     depends_on:
       - api
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:2500/ || exit 1"]
+      # 127.0.0.1, not localhost: Vite binds IPv4 only (0.0.0.0), while
+      # `localhost` resolves to ::1 first in this image.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:2500/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12

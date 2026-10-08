@@ -45,6 +45,13 @@ docker compose -f docker-compose.base44.yml exec -T api npm test  # backend test
   unset the config behaves exactly as before (no `allowedHosts` key).
 - API CORS is wide open (`cors()` with no options) and auth is a bearer token in
   `localStorage`, so no cookie/session cross-origin wiring is needed.
+- **Healthchecks must use `127.0.0.1`, not `localhost`.** In `node:22-alpine`,
+  `localhost` resolves to `::1` first and Vite only binds IPv4 (`0.0.0.0`), so
+  `wget http://localhost:2500/` gets "Connection refused" inside the `web`
+  container even while the dev server serves fine on the host port. The `api`
+  check works either way (Node listens dual-stack), but keep both on `127.0.0.1`.
+- The `npm warn ... peer react@"^16.3.0 || ^17.0.0 || ^18.0.0"` lines from
+  `react-helmet` are pre-existing and harmless (the app ships React 19 and works).
 
 ## Verifying it works
 
