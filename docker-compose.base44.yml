@@ -32,12 +32,14 @@ services:
     ports:
       - "5001:5000"
     healthcheck:
+      # Check server readiness, not robot connectivity: /api/* intentionally
+      # simulates outages and the upstream binary raises unhandled exceptions.
       test:
         [
           "CMD",
           "python3",
           "-c",
-          "import urllib.request;urllib.request.urlopen('http://localhost:5000/api/status', timeout=3)",
+          "import json, urllib.request;data=json.load(urllib.request.urlopen('http://127.0.0.1:5000/openapi.json', timeout=3));assert '/api/status' in data['paths']",
         ]
       interval: 10s
       timeout: 5s

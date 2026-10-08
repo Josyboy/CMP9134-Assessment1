@@ -75,3 +75,10 @@ the simulator → move / reset the robot → audit log records the action.
   need no database: `docker compose -f docker-compose.base44.yml exec -T api npm test`
   (9 tests). There is no frontend test suite.
 - The robot simulator's own API docs are at `http://localhost:5001/docs`.
+- The third-party simulator deliberately simulates short connection outages. Its
+  compiled middleware raises an unhandled `HTTPException(503)` during outages,
+  resulting in HTTP 500 and ASGI tracebacks; its source is not in this repository.
+  The simulator healthcheck reads `/openapi.json` and checks the status route is
+  registered, rather than polling `/api/status`, so intentional robot outages do
+  not generate healthcheck errors or mark the server unavailable. Real robot
+  requests may still hit this upstream bug; outage simulation remains unchanged.
