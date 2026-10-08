@@ -50,8 +50,9 @@ docker compose -f docker-compose.base44.yml exec -T api npm test  # backend test
   `wget http://localhost:2500/` gets "Connection refused" inside the `web`
   container even while the dev server serves fine on the host port. The `api`
   check works either way (Node listens dual-stack), but keep both on `127.0.0.1`.
-- The `npm warn ... peer react@"^16.3.0 || ^17.0.0 || ^18.0.0"` lines from
-  `react-helmet` are pre-existing and harmless (the app ships React 19 and works).
+- Page metadata uses `react-helmet-async` (supports React 19). The unused
+  `react-helmet` dependency was removed because its `react-side-effect`
+  dependency required React 16–18 and emitted peer-resolution warnings.
 
 ## Verifying it works
 
