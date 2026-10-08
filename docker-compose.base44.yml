@@ -1,0 +1,112 @@
+# Base44 sandbox/dev environment for the Ground Control Station.
+#
+# Development oriented: every application service runs FROM THE CLONED SOURCE
+# (source bind-mounted, dependencies installed on container startup, live-reload
+# dev command), so edits made here show up in the preview without a rebuild.
+#
+#   web (vite dev server)  -> host 3000   (the preview entry point)
+#   api (express + mongoose) -> host 8000
+#   robot-api (prebuilt robot simulator) -> host 5001
+#   mongo (local MongoDB, replaces the remote MongoDB Atlas cluster) -> internal only
+#
+#   docker compose -f docker-compose.base44.yml up -d --build
+name: gcs
+
+services:
+  mongo:
+    image: mongo:7
+    restart: on-failure
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  # Third-party robot simulator (public prebuilt image, not app source we edit).
+  robot-api:
+    image: ghcr.io/francescodelduchetto/cmp9134_2526_robotsim:latest
+    restart: on-failure
+    ports:
+      - "5001:5000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request;urllib.request.urlopen('http://localhost:5000/api/status', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  api:
+    image: node:22-alpine
+    working_dir: /app
+    restart: on-failure
+    command:
+      # nodemon is missing from the repo's lockfile, so use Node's built-in watcher.
+      ["sh", "-ec", "npm ci --no-audit --no-fund && exec node --watch src/server.js"]
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:3500"
+    environment:
+      PORT: "3500"
+      # Local development database; the repo's committed URI pointed at a remote
+      # MongoDB Atlas cluster, which is neither needed nor reachable here.
+      MONGO_URI: "mongodb://mongo:27017/gcs"
+      # Local development signing key (self-contained dev auth, no external service).
+      JWT_SECRET: "base44-local-development-jwt-secret"
+      ROBOT_API_BASE: "http://robot-api:5000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      robot-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3500/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    restart: on-failure
+    command:
+      [
+        "sh",
+        "-ec",
+        "npm ci --no-audit --no-fund && exec npm run dev -- --host 0.0.0.0 --port 2500",
+      ]
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:2500"
+    environment:
+      # Browser-reachable API / telemetry endpoints (public preview hosts).
+      VITE_API_BASE_URL: "https://8000-${BASE44_PUBLIC_HOST_SUFFIX}"
+      VITE_TELEMETRY_WS_URL: "wss://5001-${BASE44_PUBLIC_HOST_SUFFIX}"
+      # Vite >= 6.1 appends this to server.allowedHosts; supplied by the platform.
+      __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: "${__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS:-}"
+      BASE44_PREVIEW_MODE: "${BASE44_PREVIEW_MODE:-}"
+      BASE44_SANDBOX_HOST_DOMAIN: "${BASE44_SANDBOX_HOST_DOMAIN:-}"
+      # Vite watcher polling for bind-mounted sources.
+      CHOKIDAR_USEPOLLING: "true"
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:2500/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+volumes:
+  mongo-data:
